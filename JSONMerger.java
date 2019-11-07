@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Scanner;
 import java.util.Set;
 import org.json.simple.*;
 import org.json.simple.parser.JSONParser;
@@ -48,6 +49,8 @@ public class JSONMerger {
                 e.printStackTrace();
             }
         }
+        
+        
         for( Object key : result.keySet() ){
             location= folderPath+outputFileBaseName+outputFileSuffix+".json";
             JSONObject writeJson = new JSONObject(),fileJson = new JSONObject();
@@ -56,20 +59,15 @@ public class JSONMerger {
             writeJson.put(key.toString(),result.get(key));
             writeArray = (JSONArray)writeJson.get(key.toString());
             
-            int initialSize = 6+key.toString().length();
-            int oneObjectSize ,fileSize=initialSize;
-            int objectCountPerFile=0,ind=0;
             
-            oneObjectSize = ((JSONObject)writeArray.get(0)).toString().toCharArray().length+1;
-            if( oneObjectSize+initialSize>maxSize ){
-                    try{
-                        throw new FileSizeTooSmall("ObjectSize : "+(oneObjectSize+initialSize)+" file size : "+maxSize);
-                    }catch(FileSizeTooSmall e){
-                        e.printStackTrace();
-                        return;
-                    }
-                }
-            while( (fileSize+oneObjectSize) <= maxSize ){
+            for( int k = 0 ; k<writeArray.size() ; ){
+                fileArray = new JSONArray();
+                fileJson = new JSONObject();
+                int initialSize = 6+key.toString().length();
+                int oneObjectSize ,fileSize=initialSize;
+                int objectCountPerFile=0,ind=0;
+
+                oneObjectSize = ((JSONObject)writeArray.get(k)).toString().toCharArray().length+1;
                 if( oneObjectSize+initialSize>maxSize ){
                     try{
                         throw new FileSizeTooSmall("ObjectSize : "+(oneObjectSize+initialSize)+" file size : "+maxSize);
@@ -78,18 +76,21 @@ public class JSONMerger {
                         return;
                     }
                 }
-                if( ind>=writeArray.size())break;
-                objectCountPerFile++;
-                fileSize += ((JSONObject)writeArray.get(ind)).toString().toCharArray().length+1; 
-                ind++;
-                if( ind>=writeArray.size())break;
-                oneObjectSize = ((JSONObject)writeArray.get(ind)).toString().toCharArray().length+1;
-            }
-            for( int k = 0 ; k<writeArray.size() ; k+=objectCountPerFile ){
-                fileArray = new JSONArray();
-                fileJson = new JSONObject();
-                for( int j = k ; j<(k+objectCountPerFile) ; j++ ){
-                    fileArray.add(writeArray.get(j));
+                while( (fileSize+oneObjectSize) <= maxSize ){
+                    if( oneObjectSize+initialSize>maxSize ){
+                        try{
+                            throw new FileSizeTooSmall("ObjectSize : "+(oneObjectSize+initialSize)+" file size : "+maxSize);
+                        }catch(FileSizeTooSmall e){
+                            e.printStackTrace();
+                            return;
+                        }
+                    }
+                    if( k>=writeArray.size())break;
+                    fileArray.add(writeArray.get(k));
+                    fileSize += ((JSONObject)writeArray.get(k)).toString().toCharArray().length+1; 
+                    k++;
+                    if( k>=writeArray.size())break;
+                    oneObjectSize = ((JSONObject)writeArray.get(k)).toString().toCharArray().length+1;
                 }
                 fileJson.put(key.toString(), fileArray);
                 File file = new File(location);
@@ -109,7 +110,18 @@ public class JSONMerger {
     }
     public static void main(String[] args) {
         //sample function call
+        //merge("C:\\Users\\sachin\\Desktop\\Json files\\","data", "result", 204);
+
         //Note : finish the folderpath with backslash
-        merge("C:\\Users\\sachin\\Desktop\\Json files\\","data", "result", 150);
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Specify Folder path(With backslash at end) : ");
+        String folderPath = sc.nextLine();
+        System.out.println("Specify inputFilePrefix : ");
+        String inputFilePrefix = sc.next();
+        System.out.println("Specify outputFilePrefix : ");
+        String outputFilePrefix = sc.next();
+        System.out.println("Specify max file size");
+        int maxSize = sc.nextInt();
+        merge(folderPath,inputFilePrefix,outputFilePrefix,maxSize);
     }
 }
