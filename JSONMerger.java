@@ -12,6 +12,13 @@ import org.json.simple.*;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+class FileSizeTooSmall extends Exception{  
+
+    public FileSizeTooSmall(String s) {
+        super(s);
+    }
+    
+}  
 public class JSONMerger {
     static void merge(String folderPath,String inputFileBaseName , String outputFileBaseName,int maxSize ){
         
@@ -43,32 +50,66 @@ public class JSONMerger {
         }
         for( Object key : result.keySet() ){
             location= folderPath+outputFileBaseName+outputFileSuffix+".json";
-            JSONObject writeJson = new JSONObject();
-            JSONArray writeArray;
-            File file = new File(location);
+            JSONObject writeJson = new JSONObject(),fileJson = new JSONObject();
+            JSONArray writeArray,fileArray;
+            
             writeJson.put(key.toString(),result.get(key));
-            try (FileWriter fileWriter = new FileWriter(file)) {
-                while( writeJson.toString().toCharArray().length> maxSize){
-                    writeArray = (JSONArray)writeJson.get(key.toString());
-                    if(writeArray.size()==0){
-                        break;
+            writeArray = (JSONArray)writeJson.get(key.toString());
+            
+            int initialSize = 6+key.toString().length();
+            int oneObjectSize ,fileSize=initialSize;
+            int objectCountPerFile=0,ind=0;
+            
+            oneObjectSize = ((JSONObject)writeArray.get(0)).toString().toCharArray().length+1;
+            if( oneObjectSize+initialSize>maxSize ){
+                    try{
+                        throw new FileSizeTooSmall("ObjectSize : "+(oneObjectSize+initialSize)+" file size : "+maxSize);
+                    }catch(FileSizeTooSmall e){
+                        e.printStackTrace();
+                        return;
                     }
-                    writeArray.remove(writeArray.size()-1);
                 }
-                if( writeJson.toJSONString().toCharArray().length<=maxSize ){
-                    fileWriter.write(writeJson.toJSONString());
-                    fileWriter.flush(); 
+            while( (fileSize+oneObjectSize) <= maxSize ){
+                if( oneObjectSize+initialSize>maxSize ){
+                    try{
+                        throw new FileSizeTooSmall("ObjectSize : "+(oneObjectSize+initialSize)+" file size : "+maxSize);
+                    }catch(FileSizeTooSmall e){
+                        e.printStackTrace();
+                        return;
+                    }
                 }
-                System.out.println("File length -> "+file.length());
-            } catch (IOException e) {
-                e.printStackTrace();
+                if( ind>=writeArray.size())break;
+                objectCountPerFile++;
+                fileSize += ((JSONObject)writeArray.get(ind)).toString().toCharArray().length+1; 
+                ind++;
+                if( ind>=writeArray.size())break;
+                oneObjectSize = ((JSONObject)writeArray.get(ind)).toString().toCharArray().length+1;
             }
-            outputFileSuffix++;
+            for( int k = 0 ; k<writeArray.size() ; k+=objectCountPerFile ){
+                fileArray = new JSONArray();
+                fileJson = new JSONObject();
+                for( int j = k ; j<(k+objectCountPerFile) ; j++ ){
+                    fileArray.add(writeArray.get(j));
+                }
+                fileJson.put(key.toString(), fileArray);
+                File file = new File(location);
+                try (FileWriter fileWriter = new FileWriter(file)) {
+                    fileWriter.write(fileJson.toJSONString());
+                    fileWriter.flush(); 
+    //                }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("File"+outputFileSuffix+" size -> "+file.length());
+                outputFileSuffix++;
+                location= folderPath+outputFileBaseName+outputFileSuffix+".json";
+            }
+            
         }
     }
     public static void main(String[] args) {
         //sample function call
         //Note : finish the folderpath with backslash
-        merge("C:\\Users\\sachin\\Desktop\\Json files\\","data", "result", 204);
+        merge("C:\\Users\\sachin\\Desktop\\Json files\\","data", "result", 150);
     }
 }
