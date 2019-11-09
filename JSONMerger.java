@@ -30,17 +30,27 @@ public class JSONMerger {
         JSONObject result = new JSONObject();
         for( int inputFileSuffix = 1 ; ;inputFileSuffix++ ){ 
             location= folderPath+inputFileBaseName+inputFileSuffix+".json";
+            
             try ( FileReader reader = new FileReader(location) )
             {
+                
                 Object obj = jsonParser.parse(reader);
                 JSONObject jsonObject = (JSONObject) obj;
                 JSONArray jsonArray = new JSONArray();
                 for( Object key : jsonObject.keySet() ){
+                    
                     jsonArray = (JSONArray)jsonObject.get(key);
-                    jsonArray.forEach(record -> resultArray.add(record) );
+                    
+                    if( result.get(key)==null ){
+                        resultArray = new JSONArray();
+                        resultArray.addAll(jsonArray);
+                    }else{
+                        resultArray = (JSONArray)result.get(key);
+                        resultArray.addAll(jsonArray);
+                    }
                     result.put(key.toString(), resultArray);
                 }
-
+                
             } catch (FileNotFoundException e) {
                 break;
             }catch (IOException e ){
@@ -50,7 +60,7 @@ public class JSONMerger {
             }
         }
         
-        
+        System.out.println(result);
         for( Object key : result.keySet() ){
             location= folderPath+outputFileBaseName+outputFileSuffix+".json";
             JSONObject writeJson = new JSONObject(),fileJson = new JSONObject();
@@ -113,15 +123,16 @@ public class JSONMerger {
         //merge("C:\\Users\\sachin\\Desktop\\Json files\\","data", "result", 204);
 
         //Note : finish the folderpath with backslash
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Specify Folder path(With backslash at end) : ");
-        String folderPath = sc.nextLine();
-        System.out.println("Specify inputFilePrefix : ");
-        String inputFilePrefix = sc.next();
-        System.out.println("Specify outputFilePrefix : ");
-        String outputFilePrefix = sc.next();
-        System.out.println("Specify max file size");
-        int maxSize = sc.nextInt();
-        merge(folderPath,inputFilePrefix,outputFilePrefix,maxSize);
+//        Scanner sc = new Scanner(System.in);
+//        System.out.println("Specify Folder path(With backslash at end) : ");
+//        String folderPath = sc.nextLine();
+//        System.out.println("Specify inputFilePrefix : ");
+//        String inputFilePrefix = sc.next();
+//        System.out.println("Specify outputFilePrefix : ");
+//        String outputFilePrefix = sc.next();
+//        System.out.println("Specify max file size");
+//        int maxSize = sc.nextInt();
+//        merge(folderPath,inputFilePrefix,outputFilePrefix,maxSize);
+        merge("C:\\Users\\sachin\\Desktop\\Json files\\","data", "result", 150);
     }
 }
